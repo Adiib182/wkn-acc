@@ -738,22 +738,52 @@
 
   function exportPDF(elementId, reportName) {
     const element = document.getElementById(elementId);
+    
     // Validasi jika kontainer data masih kosong
     if (!element || element.innerText.trim() === "" || element.innerHTML.trim() === "") {
       return Swal.fire("Info", "Tidak ada data laporan yang bisa diexport. Silakan muat data terlebih dahulu.", "info");
     }
 
-    // Konfigurasi kertas dan kualitas file cetak PDF
+    // Format nama file laporan jadi judul yang rapi (Contoh: "Laporan_Neraca" -> "LAPORAN NERACA")
+    const titleText = reportName.replace(/_/g, ' ').toUpperCase();
+
+    // Buat container virtual khusus untuk hasil cetak
+    const printContainer = document.createElement('div');
+    printContainer.style.padding = "5px";
+    
+    // Sisipkan KOP SURAT (Nama Perusahaan & Judul Laporan)
+    printContainer.innerHTML = `
+      <div style="text-align: center; margin-bottom: 25px; font-family: 'Plus Jakarta Sans', sans-serif;">
+        <h2 style="margin: 0; color: #2563eb; font-weight: 800; font-size: 24px; letter-spacing: 1px;">
+          WIJAYA KREATIF NUSANTARA
+        </h2>
+        <h4 style="margin: 8px 0 0 0; color: #475569; font-weight: 600; font-size: 16px;">
+          ${titleText}
+        </h4>
+        <div style="border-bottom: 2px solid #2563eb; width: 100%; margin-top: 15px; margin-bottom: 20px;"></div>
+      </div>
+    `;
+
+    // Kloning data tabel/laporan dari layar untuk dimasukkan ke bawah kop surat
+    const reportClone = element.cloneNode(true);
+    
+    // Hilangkan border & shadow layar agar hasil PDF bersih
+    reportClone.style.border = 'none';
+    reportClone.style.boxShadow = 'none';
+    
+    printContainer.appendChild(reportClone);
+
+    // Konfigurasi kertas dan kualitas cetak
     const options = {
-      margin:       [10, 10, 10, 10], // margin atas, kiri, bawah, kanan (mm)
+      margin:       [15, 10, 15, 10], // margin atas, kiri, bawah, kanan (mm)
       filename:     `${reportName}_${new Date().toISOString().split('T')[0]}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Eksekusi pembuatan PDF secara langsung
-    html2pdf().set(options).from(element).save();
+    // Eksekusi pembuatan PDF dari container yang sudah digabung
+    html2pdf().set(options).from(printContainer).save();
   }
 
   function exportExcel(elementId, reportName) {
