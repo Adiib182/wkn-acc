@@ -744,45 +744,66 @@
       return Swal.fire("Info", "Tidak ada data laporan yang bisa diexport. Silakan muat data terlebih dahulu.", "info");
     }
 
-    // Format nama file laporan jadi judul yang rapi (Contoh: "Laporan_Neraca" -> "LAPORAN NERACA")
+    // 1. Format Judul Laporan dari reportName
     const titleText = reportName.replace(/_/g, ' ').toUpperCase();
 
-    // Buat container virtual khusus untuk hasil cetak
-    const printContainer = document.createElement('div');
-    printContainer.style.padding = "5px";
+    // 2. Deteksi Periode Secara Cerdas Berdasarkan Tab yang Sedang Aktif
+    let periodText = "";
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     
-    // Sisipkan KOP SURAT (Nama Perusahaan & Judul Laporan)
+    try {
+      if (elementId === 'rPLM') {
+        periodText = `Periode: ${months[document.getElementById('pM').value]} ${document.getElementById('pY').value}`;
+      } else if (elementId === 'tablePLA') {
+        periodText = `Periode: Tahun ${document.getElementById('pAY').value}`;
+      } else if (elementId === 'rBS') {
+        // Neraca secara akuntansi menggunakan istilah "Per (Tanggal Akhir)"
+        periodText = `Per Akhir ${months[document.getElementById('bsM').value]} ${document.getElementById('bsY').value}`;
+      } else if (elementId === 'rCF') {
+        periodText = `Periode: ${months[document.getElementById('cfM').value]} ${document.getElementById('cfY').value}`;
+      } else if (elementId === 'rEQ') {
+        periodText = `Periode: ${months[document.getElementById('eqM').value]} ${document.getElementById('eqY').value}`;
+      }
+    } catch (error) {
+      console.log("Error mengambil periode waktu:", error);
+    }
+
+    // 3. Buat Kontainer KOP SURAT Resmi
+    const printContainer = document.createElement('div');
+    printContainer.style.padding = "5px 15px";
+    
     printContainer.innerHTML = `
       <div style="text-align: center; margin-bottom: 25px; font-family: 'Plus Jakarta Sans', sans-serif;">
-        <h2 style="margin: 0; color: #2563eb; font-weight: 800; font-size: 24px; letter-spacing: 1px;">
+        <h2 style="margin: 0; color: #1e293b; font-weight: 800; font-size: 24px; letter-spacing: 1.5px;">
           WIJAYA KREATIF NUSANTARA
         </h2>
-        <h4 style="margin: 8px 0 0 0; color: #475569; font-weight: 600; font-size: 16px;">
+        <h4 style="margin: 8px 0 0 0; color: #334155; font-weight: 700; font-size: 16px;">
           ${titleText}
         </h4>
-        <div style="border-bottom: 2px solid #2563eb; width: 100%; margin-top: 15px; margin-bottom: 20px;"></div>
+        <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px; font-weight: 500; font-style: italic;">
+          ${periodText}
+        </p>
+        <div style="border-bottom: 3px solid #1e293b; width: 100%; margin-top: 15px; margin-bottom: 2px;"></div>
+        <div style="border-bottom: 1px solid #1e293b; width: 100%; margin-bottom: 25px;"></div>
       </div>
     `;
 
-    // Kloning data tabel/laporan dari layar untuk dimasukkan ke bawah kop surat
+    // 4. Kloning dan Bersihkan Gaya Elemen Laporan
     const reportClone = element.cloneNode(true);
-    
-    // Hilangkan border & shadow layar agar hasil PDF bersih
     reportClone.style.border = 'none';
     reportClone.style.boxShadow = 'none';
     
     printContainer.appendChild(reportClone);
 
-    // Konfigurasi kertas dan kualitas cetak
+    // 5. Eksekusi PDF dengan Ukuran Kertas A4 & Margin Standar Dokumen Resmi
     const options = {
-      margin:       [15, 10, 15, 10], // margin atas, kiri, bawah, kanan (mm)
+      margin:       [15, 15, 15, 15], // Atas, Kiri, Bawah, Kanan
       filename:     `${reportName}_${new Date().toISOString().split('T')[0]}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Eksekusi pembuatan PDF dari container yang sudah digabung
     html2pdf().set(options).from(printContainer).save();
   }
 
