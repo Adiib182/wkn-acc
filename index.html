@@ -1,15 +1,568 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WKN System Acc</title>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #f8f9fa; }
-        iframe { width: 100%; height: 100%; border: none; }
-    </style>
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    /* --- TEMA MERAH RINGAN (LIGHT RED THEME) --- */
+    :root { 
+      --primary: #dc3545; 
+      --primary-hover: #a71d2a;
+      --primary-light: #fff5f6;
+      --bg: #fcfcfc; 
+      --text-main: #2d3436;
+    }
+    
+    body { background-color: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; padding: 15px; color: var(--text-main); }
+    
+    /* LOGIN OVERLAY */
+    #login-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #7b1113, #dc3545);
+      z-index: 10000; display: flex; align-items: center; justify-content: center;
+    }
+    .login-card {
+      background: white; padding: 40px; border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center;
+    }
+    #main-wrapper { display: none; }
+
+    /* UI ELEMENTS */
+    h4, .nav-link { font-family: 'Orbitron', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+    .card { background: white; border: 1px solid #f1f1f1; box-shadow: 0 10px 25px rgba(220, 53, 69, 0.05); border-radius: 15px; padding: 25px; }
+    
+    .nav-pills .nav-link.active { background-color: var(--primary) !important; color: white !important; }
+    .nav-link { color: #666; transition: 0.3s; }
+    .nav-link:hover { color: var(--primary); }
+
+    .btn-primary { background: var(--primary); border: none; font-weight: 600; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .id-link { color: var(--primary); cursor: pointer; font-weight: bold; text-decoration: underline; }
+    
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.1); }
+    
+    #pArea { display: none; }
+
+    /* PRINT RULES */
+    @media print {
+      @page { margin: 1.5cm; }
+      .no-print { display: none !important; }
+      #pArea { display: block !important; font-family: 'Courier New', monospace; font-size: 13px; color: #000 !important; font-weight: bold !important; }
+      #pArea * { color: #000 !important; font-weight: bold !important; }
+      table { width: 100%; border-collapse: collapse; margin-top: 15px; border: 2px solid #000 !important; }
+      th, td { border: 2px solid #000 !important; padding: 8px; }
+      .print-header { border-bottom: 4px solid #000 !important; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .sign-box { margin-top: 80px; display: flex; justify-content: space-around; text-align: center; }
+      .sign-line { margin-top: 60px; border-top: 3px solid #000 !important; width: 180px; }
+    }
+  </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbx4OeF_yhXhUg6bW23TgfiHf4VBTElq1Su3KZWwz468L8rMr5oG2kvxCArs3H122iK7/exec"></iframe>
+
+<div id="login-overlay">
+  <div class="login-card">
+    <!-- Judul Aplikasi Baru -->
+    <h3 class="fw-bold mb-2" style="color:var(--primary); font-family:'Orbitron'">WKN ACCOUNTING</h3>
+    <p class="text-muted small mb-4">Management System</p>
+    <div class="mb-3">
+      <input type="password" id="pass-input" class="form-control text-center py-2" placeholder="Enter Access Password">
+    </div>
+    <button class="btn btn-primary w-100 py-2 fw-bold" onclick="validateAccess()">ACCESS SYSTEM</button>
+    <div id="login-err" class="text-danger mt-3 small fw-bold" style="display:none">Access Denied: Invalid Password!</div>
+  </div>
+</div>
+
+<div id="main-wrapper">
+  <div class="container-fluid no-print">
+    <!-- Header Utama Baru -->
+    <div class="text-center mb-4"><h4 style="color:var(--primary)">WKN SYSTEM <span style="color:#475569">ACCOUNTING</span></h4></div>
+
+    <div class="card">
+      <ul class="nav nav-pills nav-justified mb-4 bg-light p-2 rounded">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#t1">Quest Entry</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t2" onclick="initLedger()">Inventory Log</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t3">Stats Center</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t4">P&L Monthly</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t5">P&L Annual</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t6">Neraca</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t7">Arus Kas</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#t8">Perubahan Ekuitas</a></li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- TAB 1: ENTRY -->
+        <div id="t1" class="tab-pane fade show active">
+          <form id="jF">
+            <div class="row g-2 mb-3 align-items-end">
+              <div class="col-md-2"><label class="small fw-bold">DATE</label><input type="date" id="tgl" class="form-control"></div>
+              <div class="col-md-4">
+                <label class="small fw-bold">TRANS ID</label>
+                <div class="input-group">
+                  <input type="text" id="nobuk" class="form-control fw-bold text-danger">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" onclick="loadForEdit()">EDIT</button>
+                  <button class="btn btn-outline-danger btn-sm" type="button" onclick="confirmDelete()">HAPUS</button>
+                </div>
+              </div>
+              <div class="col-md-6 text-end">
+                <div class="p-2 border rounded bg-light d-inline-block" style="background-color: var(--primary-light) !important;">
+                  <span class="small fw-bold">DEBIT: </span><span id="liveDeb" class="me-3 fw-bold text-danger">0</span>
+                  <span class="small fw-bold">KREDIT: </span><span id="liveKre" class="fw-bold text-danger">0</span>
+                  <div id="liveStatus" class="small fw-bold" style="font-size: 10px;"></div>
+                </div>
+              </div>
+            </div>
+            <div id="rowC"></div>
+            <button type="button" class="btn btn-light btn-sm mt-2 fw-bold" onclick="addRow()">+ ADD ROW</button>
+            <button type="button" class="btn btn-primary w-100 mt-3" id="btnSave" onclick="saveJ()">SAVE TRANSACTION</button>
+          </form>
+        </div>
+
+        <!-- TAB 2: LEDGER -->
+        <div id="t2" class="tab-pane fade">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><select id="sLed" class="form-select"></select></div>
+            <div class="col-md-3"><input type="date" id="dL1" class="form-control"></div>
+            <div class="col-md-3"><input type="date" id="dL2" class="form-control"></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" onclick="showL()">SCAN</button></div>
+          </div>
+          <table class="table table-sm"><thead class="table-dark"><tr><th>DATE</th><th>ID</th><th>DESC</th><th class="text-end">DEBIT</th><th class="text-end">CREDIT</th><th class="text-end">BALANCE</th></tr></thead><tbody id="bLed"></tbody></table>
+        </div>
+
+        <!-- TAB 3: TRIAL BALANCE -->
+        <div id="t3" class="tab-pane fade">
+          <div class="row g-2 mb-3">
+            <div class="col-md-5"><input type="date" id="dR1" class="form-control"></div>
+            <div class="col-md-5"><input type="date" id="dR2" class="form-control"></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" onclick="showTB()">LOAD</button></div>
+          </div>
+          <table class="table table-bordered table-sm"><thead class="table-light"><tr><th>CODE</th><th>ACCOUNT</th><th class="text-end">OPENING</th><th class="text-end">DEBIT</th><th class="text-end">CREDIT</th><th class="text-end">CLOSING</th></tr></thead><tbody id="bTB"></tbody></table>
+        </div>
+
+        <!-- TAB 4: P&L MONTHLY -->
+        <div id="t4" class="tab-pane fade">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><select id="pM" class="form-select"><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option></select></div>
+            <div class="col-md-4"><input type="number" id="pY" class="form-control" value="2026"></div>
+            <div class="col-md-4"><button class="btn btn-primary w-100" onclick="showPLM()">VIEW P&L</button></div>
+          </div>
+          <div id="rPLM" class="p-3 border rounded bg-white"></div>
+        </div>
+
+        <!-- TAB 5: P&L ANNUAL -->
+        <div id="t5" class="tab-pane fade">
+          <div class="row g-2 mb-3">
+            <div class="col-md-10"><input type="number" id="pAY" class="form-control" value="2026"></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" onclick="showPLA()">LOAD</button></div>
+          </div>
+          <table class="table table-bordered table-sm text-center">
+            <thead class="table-dark"><tr><th>MONTH</th><th>INCOME</th><th>EXPENSE</th><th>PROFIT</th></tr></thead>
+            <tbody id="bPLA"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 6: NERACA -->
+        <div id="t6" class="tab-pane fade">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><select id="bsM" class="form-select"><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option></select></div>
+            <div class="col-md-4"><input type="number" id="bsY" class="form-control" value="2026"></div>
+            <div class="col-md-4"><button class="btn btn-primary w-100" onclick="showBS()">VIEW NERACA</button></div>
+          </div>
+          <div id="rBS" class="row"></div>
+        </div>
+
+        <!-- TAB 7: ARUS KAS -->
+        <div id="t7" class="tab-pane fade">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <select id="cfM" class="form-select">
+                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+                <option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option>
+                <option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option>
+                <option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option>
+              </select>
+            </div>
+            <div class="col-md-4"><input type="number" id="cfY" class="form-control" value="2026"></div>
+            <div class="col-md-4"><button class="btn btn-primary w-100" onclick="showCF()">VIEW ARUS KAS</button></div>
+          </div>
+          <div id="rCF"></div>
+        </div>
+
+<div id="t8" class="tab-pane fade">
+  <div class="row g-2 mb-3">
+    <div class="col-md-4">
+      <select id="eqM" class="form-select">
+        <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+        <option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option>
+        <option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option>
+        <option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option>
+      </select>
+    </div>
+    <div class="col-md-4"><input type="number" id="eqY" class="form-control" value="2026"></div>
+    <div class="col-md-4"><button class="btn btn-primary w-100" onclick="showEQ()">VIEW EKUITAS</button></div>
+  </div>
+  <div id="rEQ" class="p-3 border rounded bg-white"></div>
+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VOUCHER -->
+  <div class="modal fade no-print" id="vMod" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><b>Voucher Detail</b><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="vB"></div><div class="modal-footer"><button class="btn btn-primary" id="vP">Print Voucher</button></div></div></div></div>
+
+  <!-- AREA PRINT (VOUCHER) -->
+  <div id="pArea">
+    <div class="print-header">
+      <div><h2 style="margin:0; color:#dc3545;">Wijaya Kreasi Nusantara</h2><p style="margin:0">Lokasi: Jakarta</p></div>
+      <div style="text-align:right;"><h3 style="margin:0">VOUCHER JURNAL</h3><p id="pTgl" style="margin:0"></p></div>
+    </div>
+    <p><strong>Ref ID:</strong> <span id="pID"></span></p>
+    <table><thead><tr><th>ACCOUNT</th><th>DESCRIPTION</th><th align="right">DEBIT</th><th align="right">CREDIT</th></tr></thead><tbody id="pB"></tbody></table>
+    <div class="sign-box">
+      <div><p>Prepared By,</p><div class="sign-line"></div><p>( .................... )</p></div>
+      <div><p>Approved By,</p><div class="sign-line"></div><p>( .................... )</p></div>
+    </div>
+  </div>
+</div> 
+
+<script>
+  // 🔴 MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI! 🔴
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbx4OeF_yhXhUg6bW23TgfiHf4VBTElq1Su3KZWwz468L8rMr5oG2kvxCArs3H122iK7/exec"; 
+
+  let coa = []; let vModal;
+  let isEditMode = false;
+
+  // --- FUNGSI HELPER UNTUK FETCH API ---
+  async function apiCall(action, params = {}) {
+    try {
+      const payload = { action: action, ...params };
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        // Menggunakan text/plain menghindari blokir preflight CORS browser
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const res = await response.json();
+      if (res.status === 'success') return res.data;
+      else { Swal.fire("Error", res.message, "error"); throw new Error(res.message); }
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error Koneksi", "Gagal menghubungi server database.", "error");
+    }
+  }
+
+  // --- REFACTOR LOGIC APLIKASI ---
+
+  function validateAccess() {
+    const pass = document.getElementById('pass-input').value;
+    const err = document.getElementById('login-err');
+    
+    apiCall('checkPassword', { pass: pass }).then(isValid => {
+      if(isValid) {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-wrapper').style.display = 'block';
+        startSystem();
+      } else {
+        err.style.display = 'block';
+        document.getElementById('pass-input').value = "";
+      }
+    });
+  }
+
+  document.getElementById('pass-input').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') validateAccess();
+  });
+
+  function startSystem() {
+    vModal = new bootstrap.Modal(document.getElementById('vMod'));
+    apiCall('getCOAList').then(d => { coa = d; resetF(); });
+    
+    const n = new Date().toISOString().split('T')[0];
+    ['dL1','dL2','dR1','dR2'].forEach(i => document.getElementById(i).value = n);
+  }
+
+  function resetF() {
+    isEditMode = false;
+    document.getElementById('btnSave').innerText = "SAVE TRANSACTION";
+    document.getElementById('btnSave').className = "btn btn-primary w-100 mt-3";
+    document.getElementById('jF').reset();
+    document.getElementById('tgl').value = new Date().toISOString().split('T')[0];
+    document.getElementById('rowC').innerHTML = "";
+    
+    apiCall('getNextNoBukti').then(n => document.getElementById('nobuk').value = n);
+    addRow(); addRow(); calculateLiveTotal();
+  }
+
+  function addRow() {
+    const d = document.createElement('div'); d.className = 'row g-2 mb-2 entry-row';
+    d.innerHTML = `<div class="col-md-3"><select class="form-select a-s">${coa.map(a=>`<option value="${a[0]}">${a[0]} - ${a[1]}</option>`).join('')}</select></div><div class="col-md-4"><input type="text" class="form-control r-k" placeholder="Description"></div><div class="col-md-2"><input type="text" class="form-control r-d text-end" onkeyup="fM(this)" placeholder="0"></div><div class="col-md-2"><input type="text" class="form-control r-c text-end" onkeyup="fM(this)" placeholder="0"></div><div class="col-md-1"><button type="button" class="btn text-danger" onclick="this.parentElement.parentElement.remove(); calculateLiveTotal();">×</button></div>`;
+    document.getElementById('rowC').appendChild(d);
+  }
+
+  function fM(e) { 
+    let v = e.value.replace(/\D/g,""); 
+    e.value = v ? new Intl.NumberFormat('id-ID').format(v) : ""; 
+    calculateLiveTotal();
+  }
+
+  function calculateLiveTotal() {
+    let td=0, tc=0;
+    document.querySelectorAll('.entry-row').forEach(r => {
+      td += parseFloat(r.querySelector('.r-d').value.replace(/\./g,""))||0;
+      tc += parseFloat(r.querySelector('.r-c').value.replace(/\./g,""))||0;
+    });
+    document.getElementById('liveDeb').innerText = td.toLocaleString('id-ID');
+    document.getElementById('liveKre').innerText = tc.toLocaleString('id-ID');
+    const s = document.getElementById('liveStatus');
+    if(td === tc && td > 0) { s.innerText="✓ MATCHED"; s.className="small fw-bold text-success"; }
+    else { s.innerText="× UNMATCHED"; s.className="small fw-bold text-danger"; }
+  }
+
+  function loadForEdit() {
+    const id = document.getElementById('nobuk').value;
+    if(!id) return Swal.fire("Info","Ketik No Bukti yang ingin diedit","info");
+    Swal.fire({title:'Searching...', didOpen:()=>{Swal.showLoading()}});
+    
+    apiCall('getTransactionByNoBukti', { noBukti: id }).then(rs => {
+      Swal.close();
+      if(!rs || rs.length === 0) return Swal.fire("Error","Data Tidak Ditemukan","error");
+      
+      isEditMode = true;
+      document.getElementById('btnSave').innerText = "UPDATE TRANSACTION";
+      document.getElementById('btnSave').className = "btn btn-warning w-100 mt-3";
+      
+      const dateParts = rs[0].tgl.split(' ');
+      const m = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',Mei:'05',Jun:'06',Jul:'07',Agu:'08',Sep:'09',Okt:'10',Nov:'11',Des:'12'};
+      document.getElementById('tgl').value = `${dateParts[2]}-${m[dateParts[1]]}-${dateParts[0].padStart(2,'0')}`;
+      
+      document.getElementById('rowC').innerHTML = "";
+      rs.forEach(item => {
+        const d = document.createElement('div'); d.className = 'row g-2 mb-2 entry-row';
+        d.innerHTML = `<div class="col-md-3"><select class="form-select a-s">${coa.map(a=>`<option value="${a[0]}" ${a[0]==item.kode?'selected':''}>${a[0]} - ${a[1]}</option>`).join('')}</select></div><div class="col-md-4"><input type="text" class="form-control r-k" value="${item.ket}"></div><div class="col-md-2"><input type="text" class="form-control r-d text-end" onkeyup="fM(this)" value="${item.deb?item.deb.toLocaleString('id-ID'):''}"></div><div class="col-md-2"><input type="text" class="form-control r-c text-end" onkeyup="fM(this)" value="${item.kre?item.kre.toLocaleString('id-ID'):''}"></div><div class="col-md-1"><button type="button" class="btn text-danger" onclick="this.parentElement.parentElement.remove(); calculateLiveTotal();">×</button></div>`;
+        document.getElementById('rowC').appendChild(d);
+      });
+      calculateLiveTotal();
+    });
+  }
+
+  function confirmDelete() {
+    const id = document.getElementById('nobuk').value;
+    if(!id) return Swal.fire("Info","Ketik No Bukti yang ingin dihapus","info");
+    Swal.fire({
+      title: 'Hapus Jurnal?', text: "Data dengan ID "+id+" akan dihapus dari sistem!",
+      icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        apiCall('deleteJournalByNoBukti', { noBukti: id }).then(res => {
+          if(res === "SUCCESS") Swal.fire("Deleted!","Jurnal berhasil dihapus","success").then(resetF);
+          else Swal.fire("Error","Gagal menghapus atau data tidak ditemukan","error");
+        });
+      }
+    });
+  }
+
+  function saveJ() {
+    let td=0, tc=0, p=[];
+    const currentNoBukti = document.getElementById('nobuk').value;
+    
+    document.querySelectorAll('.entry-row').forEach(r => {
+      let d=parseFloat(r.querySelector('.r-d').value.replace(/\./g,""))||0, c=parseFloat(r.querySelector('.r-c').value.replace(/\./g,""))||0;
+      if(d>0||c>0) { p.push({tanggal:document.getElementById('tgl').value, noBukti:currentNoBukti, kodeAkun:r.querySelector('.a-s').value, namaAkun:r.querySelector('.a-s').options[r.querySelector('.a-s').selectedIndex].text.split(' - ')[1], keterangan:r.querySelector('.r-k').value, debit:d, kredit:c}); td+=d; tc+=c; }
+    });
+    
+    if(td!==tc || p.length===0) return Swal.fire("Error","Balance Unmatch!","error");
+    
+    Swal.fire({title:'Menyimpan...', didOpen:()=>{Swal.showLoading()}});
+    
+    if(isEditMode) {
+      apiCall('updateJournal', { p: p, oldNoBukti: currentNoBukti }).then(()=>{ 
+        Swal.fire("Updated!","Data berhasil diperbarui","success").then(resetF); 
+      });
+    } else {
+      apiCall('submitJournal', { p: p }).then(()=>{ 
+        Swal.fire("Saved!","Data berhasil disimpan","success").then(resetF); 
+      });
+    }
+  }
+
+  function initLedger() { document.getElementById('sLed').innerHTML = coa.map(a=>`<option value="${a[0]}">${a[0]} - ${a[1]}</option>`).join(''); }
+
+  function showL() {
+    apiCall('getLedgerData', { 
+      kodeAkun: document.getElementById('sLed').value, 
+      tglAwal: document.getElementById('dL1').value, 
+      tglAkhir: document.getElementById('dL2').value 
+    }).then(r => {
+      let h = `<tr><td colspan="5" align="center" class="text-muted small">OPENING BALANCE</td><td align="right"><b>${r.saldoAwal.toLocaleString()}</b></td></tr>`;
+      r.logs.forEach(l => h += `<tr><td>${l.tanggal}</td><td><span class="id-link" onclick="viewJ('${l.bukti}')">${l.bukti}</span></td><td>${l.ket}</td><td align="right">${l.debit.toLocaleString()}</td><td align="right">${l.kredit.toLocaleString()}</td><td align="right">${l.saldo.toLocaleString()}</td></tr>`);
+      h += `<tr class="table-primary fw-bold" style="background-color: var(--primary-light) !important; color: var(--primary) !important;"><td colspan="3" align="center">GRAND TOTAL MUTASI</td><td align="right">${r.tDeb.toLocaleString()}</td><td align="right">${r.tKre.toLocaleString()}</td><td align="right">${r.saldoAkhir.toLocaleString()}</td></tr>`;
+      document.getElementById('bLed').innerHTML = h;
+    });
+  }
+
+  function showTB() {
+    apiCall('getTrialBalance', {
+      tglAwal: document.getElementById('dR1').value, 
+      tglAkhir: document.getElementById('dR2').value
+    }).then(data => {
+      let h = '', t1=0, t2=0, t3=0, t4=0;
+      data.forEach(r => {
+        if(r.awal===0 && r.debit===0 && r.kredit===0) return;
+        h += `<tr><td>${r.kode}</td><td>${r.nama}</td><td align="right">${r.awal.toLocaleString()}</td><td align="right">${r.debit.toLocaleString()}</td><td align="right">${r.kredit.toLocaleString()}</td><td align="right"><b>${r.akhir.toLocaleString()}</b></td></tr>`;
+        t1+=r.awal; t2+=r.debit; t3+=r.kredit; t4+=r.akhir;
+      });
+      h += `<tr class="table-dark fw-bold"><td colspan="2" align="center">TOTAL</td><td align="right">${t1.toLocaleString()}</td><td align="right">${t2.toLocaleString()}</td><td align="right">${t3.toLocaleString()}</td><td align="right">${t4.toLocaleString()}</td></tr>`;
+      document.getElementById('bTB').innerHTML = h;
+    });
+  }
+
+  function showPLM() {
+    apiCall('getMonthlyPL', {
+      bulan: document.getElementById('pM').value, 
+      tahun: document.getElementById('pY').value
+    }).then(res => {
+      let h = `<h6 class="fw-bold text-danger">INCOME</h6><table class="table table-sm">`;
+      res.income.forEach(i => h+=`<tr><td>${i.nama}</td><td align="right">${i.total.toLocaleString()}</td></tr>`);
+      h += `<tr class="fw-bold"><td>TOTAL INCOME</td><td align="right">${res.tInc.toLocaleString()}</td></tr></table>`;
+      h += `<h6 class="fw-bold text-dark mt-3">EXPENSE</h6><table class="table table-sm">`;
+      res.expense.forEach(e => h+=`<tr><td>${e.nama}</td><td align="right">${e.total.toLocaleString()}</td></tr>`);
+      h += `<tr class="fw-bold"><td>TOTAL EXPENSE</td><td align="right">${res.tExp.toLocaleString()}</td></tr></table>`;
+      h += `<div class="alert ${res.net>=0?'alert-success':'alert-danger'} mt-3 d-flex justify-content-between"><b>NET PROFIT</b><b>${res.net.toLocaleString()}</b></div>`;
+      document.getElementById('rPLM').innerHTML = h;
+    });
+  }
+
+  function showPLA() {
+    apiCall('getAnnualPL', { tahun: document.getElementById('pAY').value }).then(res => {
+      let h = ''; 
+      res.report.forEach(v => h += `<tr><td>${v.bulan}</td><td align="right">${v.inc.toLocaleString()}</td><td align="right">${v.exp.toLocaleString()}</td><td class="fw-bold ${v.profit>=0?'text-success':'text-danger'}" align="right">${v.profit.toLocaleString()}</td></tr>`);
+      h += `<tr class="table-dark fw-bold"><td>GRAND TOTAL</td><td align="right">${res.gInc.toLocaleString()}</td><td align="right">${res.gExp.toLocaleString()}</td><td align="right">${res.gNet.toLocaleString()}</td></tr>`;
+      document.getElementById('bPLA').innerHTML = h;
+    });
+  }
+
+  function showBS() {
+    apiCall('getBalanceSheet', {
+      bulan: document.getElementById('bsM').value, 
+      tahun: document.getElementById('bsY').value
+    }).then(res => {
+      let h = `<div class="col-md-6"><h6 class="fw-bold border-bottom pb-2">AKTIVA (ASSETS)</h6><table class="table table-sm">`;
+      res.aktiva.forEach(a => h += `<tr><td>${a.nama}</td><td align="right">${a.total.toLocaleString()}</td></tr>`);
+      h += `<tr class="table-danger fw-bold" style="background-color: var(--primary-light) !important;"><td>TOTAL AKTIVA</td><td align="right">${res.tAkt.toLocaleString()}</td></tr></table></div>`;
+      h += `<div class="col-md-6"><h6 class="fw-bold border-bottom pb-2">PASSIVA (EQUITY)</h6><table class="table table-sm">`;
+      res.passiva.forEach(p => h += `<tr><td>${p.nama}</td><td align="right">${p.total.toLocaleString()}</td></tr>`);
+      h += `<tr class="table-danger fw-bold" style="background-color: var(--primary-light) !important;"><td>TOTAL PASSIVA</td><td align="right">${res.tPas.toLocaleString()}</td></tr></table></div>`;
+      document.getElementById('rBS').innerHTML = h;
+    });
+  }
+
+  function viewJ(id) {
+    apiCall('getTransactionByNoBukti', { noBukti: id }).then(rs => {
+      let b = `<table class="table table-bordered table-sm"><thead><tr><th>Account</th><th>Debit</th><th>Credit</th></tr></thead><tbody>`;
+      rs.forEach(r => b += `<tr><td>${r.nama}</td><td align="right">${r.deb.toLocaleString()}</td><td align="right">${r.kre.toLocaleString()}</td></tr>`);
+      document.getElementById('vB').innerHTML = b + `</tbody></table>`;
+      document.getElementById('vP').onclick = () => printP(id);
+      vModal.show();
+    });
+  }
+
+  function printP(id) {
+    apiCall('getTransactionByNoBukti', { noBukti: id }).then(rs => {
+      document.getElementById('pID').innerText = id; document.getElementById('pTgl').innerText = rs[0].tgl;
+      let b = "", d=0, c=0;
+      rs.forEach(r => { b+=`<tr><td>${r.nama}</td><td>${r.ket}</td><td align="right">${r.deb.toLocaleString()}</td><td align="right">${r.kre.toLocaleString()}</td></tr>`; d+=r.deb; c+=r.kre; });
+      document.getElementById('pB').innerHTML = b + `<tr style="font-weight:bold"><td colspan="2" align="right">TOTAL</td><td align="right">${d.toLocaleString()}</td><td align="right">${c.toLocaleString()}</td></tr>`;
+      window.print();
+    });
+  }
+
+  function showCF() {
+    const m = document.getElementById('cfM').value;
+    const y = document.getElementById('cfY').value;
+
+    Swal.fire({title:'Menyusun Arus Kas...', didOpen:()=>{Swal.showLoading()}});
+    apiCall('getCashFlow', { bulan: m, tahun: y }).then(res => {
+      Swal.close();
+      let h = `<div class="alert alert-secondary d-flex justify-content-between mb-3 border-0 shadow-sm" style="background-color: #f8f9fa; border-left: 4px solid #6c757d !important;"><b>SALDO AWAL KAS & BANK</b><b>${res.saldoAwal.toLocaleString('id-ID')}</b></div>`;
+
+      const renderCat = (title, data, net, color, laba = null) => {
+        let html = `<h6 class="fw-bold text-${color} border-bottom pb-2 mt-4">${title}</h6><table class="table table-sm">`;
+        if(laba !== null) {
+          let formatLaba = laba < 0 ? '(' + Math.abs(laba).toLocaleString('id-ID') + ')' : laba.toLocaleString('id-ID');
+          html += `<tr><td class="fw-bold">Laba (Rugi) Bersih</td><td align="right" class="fw-bold">${formatLaba}</td></tr>`;
+        }
+        if(data.length === 0 && laba === null) {
+           html += `<tr><td class="text-muted fst-italic">Tidak ada penyesuaian</td><td align="right">0</td></tr>`;
+        } else {
+           data.forEach(i => {
+              let nom = i.nominal < 0 ? '(' + Math.abs(i.nominal).toLocaleString('id-ID') + ')' : i.nominal.toLocaleString('id-ID');
+              html += `<tr><td class="ps-3 text-muted">${i.ket}</td><td align="right">${nom}</td></tr>`;
+           });
+        }
+        let netFormat = net < 0 ? '(' + Math.abs(net).toLocaleString('id-ID') + ')' : net.toLocaleString('id-ID');
+        html += `<tr class="fw-bold table-light"><td align="right">Kas Bersih Aktivitas</td><td align="right" class="text-${color}">${netFormat}</td></tr></table>`;
+        return html;
+      };
+
+      h += `<div class="card p-3 mb-3 border-0 shadow-sm">`;
+      h += renderCat('1. Arus Kas dari Aktivitas Operasi', res.operasi, res.netOp, 'dark', res.labaBersih);
+      h += renderCat('2. Arus Kas dari Aktivitas Investasi', res.investasi, res.netInv, 'dark');
+      h += renderCat('3. Arus Kas dari Aktivitas Pendanaan', res.pendanaan, res.netFin, 'dark');
+      h += `</div>`;
+
+      let isNetUp = res.netMutasi >= 0;
+      let mutasiFormat = res.netMutasi < 0 ? '(' + Math.abs(res.netMutasi).toLocaleString('id-ID') + ')' : res.netMutasi.toLocaleString('id-ID');
+      h += `<div class="alert ${isNetUp ? 'alert-success' : 'alert-warning'} d-flex justify-content-between mb-3 border-0 shadow-sm"><b>KENAIKAN (PENURUNAN) KAS BERSIH</b><b class="${isNetUp ? 'text-success' : 'text-danger'}">${mutasiFormat}</b></div>`;
+      h += `<div class="alert mt-3 d-flex justify-content-between border-0 shadow-sm" style="background-color: var(--primary-light); color: var(--primary); border-left: 4px solid var(--primary) !important;"><b>SALDO AKHIR KAS & BANK</b><b>${res.saldoAkhir.toLocaleString('id-ID')}</b></div>`;
+      document.getElementById('rCF').innerHTML = h;
+    });
+  }
+
+  function showEQ() {
+    const m = document.getElementById('eqM').value;
+    const y = document.getElementById('eqY').value;
+    Swal.fire({title:'Menyusun Perubahan Ekuitas...', didOpen:()=>{Swal.showLoading()}});
+    
+    apiCall('getEquityStatement', { bulan: m, tahun: y }).then(res => {
+      Swal.close();
+      let h = `<h5 class="fw-bold text-center mb-1" style="color:var(--primary)">WIJAYA KREASI NUSANTARA</h5>`;
+      h += `<h6 class="text-center fw-bold text-secondary mb-4">LAPORAN PERUBAHAN EKUITAS</h6>`;
+      h += `<table class="table table-sm table-bordered">`;
+      
+      let formatAwal = res.totalModalAwal < 0 ? '(' + Math.abs(res.totalModalAwal).toLocaleString('id-ID') + ')' : res.totalModalAwal.toLocaleString('id-ID');
+      h += `<tr class="table-light fw-bold"><td>Ekuitas / Modal Awal Per Tanggal 1</td><td align="right">${formatAwal}</td></tr>`;
+      
+      res.rincianModalAwal.forEach(r => {
+        if(r.nominal !== 0) {
+          let fNom = r.nominal < 0 ? '(' + Math.abs(r.nominal).toLocaleString('id-ID') + ')' : r.nominal.toLocaleString('id-ID');
+          h += `<tr><td class="ps-4 text-muted small">${r.nama}</td><td align="right" class="text-muted small">${fNom}</td></tr>`;
+        }
+      });
+      if(res.labaSebelumnya !== 0) {
+        let fLabaPrev = res.labaSebelumnya < 0 ? '(' + Math.abs(res.labaSebelumnya).toLocaleString('id-ID') + ')' : res.labaSebelumnya.toLocaleString('id-ID');
+        h += `<tr><td class="ps-4 text-muted small">Akumulasi Laba Bersih Bulan-Bulan Sebelumnya</td><td align="right" class="text-muted small">${fLabaPrev}</td></tr>`;
+      }
+
+      h += `<tr class="fw-bold text-secondary"><td colspan="2" class="pt-3">Perubahan Periode Berjalan:</td></tr>`;
+      let formatLaba = res.labaBulanIni < 0 ? '(' + Math.abs(res.labaBulanIni).toLocaleString('id-ID') + ')' : res.labaBulanIni.toLocaleString('id-ID');
+      let colorLaba = res.labaBulanIni >= 0 ? 'text-success' : 'text-danger';
+      h += `<tr><td class="ps-3">Laba (Rugi) Bersih Bulan Berjalan</td><td align="right" class="${colorLaba}">${formatLaba}</td></tr>`;
+      
+      if(res.mutasiModal.length > 0) {
+        res.mutasiModal.forEach(m => {
+          let fNom = m.nominal < 0 ? '(' + Math.abs(m.nominal).toLocaleString('id-ID') + ')' : m.nominal.toLocaleString('id-ID');
+          h += `<tr><td class="ps-3">${m.ket}</td><td align="right">${fNom}</td></tr>`;
+        });
+      }
+
+      let formatAkhir = res.totalModalAkhir < 0 ? '(' + Math.abs(res.totalModalAkhir).toLocaleString('id-ID') + ')' : res.totalModalAkhir.toLocaleString('id-ID');
+      h += `<tr class="table-dark fw-bold"><td class="py-2">Ekuitas / Modal Akhir Akhir Periode</td><td align="right" class="py-2">${formatAkhir}</td></tr>`;
+      h += `</table>`;
+      document.getElementById('rEQ').innerHTML = h;
+    });
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
