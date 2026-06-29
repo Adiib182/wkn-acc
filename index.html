@@ -6,6 +6,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>  
   <style>
@@ -190,7 +191,10 @@
       
       <ul class="p-0 m-0" role="tablist">
         <li class="nav-item">
-          <a class="nav-link active" data-bs-toggle="tab" href="#t1">Jurnal Entry</a>
+          <a class="nav-link active" data-bs-toggle="tab" href="#t0" onclick="loadDashboard()">📊 Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#t1">📝 Jurnal Entry</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" data-bs-toggle="tab" href="#t2" onclick="initLedger()">General Ledger</a>
@@ -223,8 +227,59 @@
     <main class="workspace">
       <div class="card no-print">
         <div class="tab-content">
-        <!-- TAB 1: ENTRY -->
-        <div id="t1" class="tab-pane fade show active">
+        <!-- TAB 0: DASHBOARD -->
+        <div id="t0" class="tab-pane fade show active">
+          <h4 class="fw-bold mb-4" style="color: var(--primary);">Dashboard Overview</h4>
+          
+          <!-- 4 Kartu Metrik Utama -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <div class="card p-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #2563eb, #1e40af); color: white;">
+                <h6 class="mb-1 text-white-50" style="font-size: 12px;">Saldo Kas & Bank</h6>
+                <h4 id="dash-cash" class="fw-bold mb-0">Rp 0</h4>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card p-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #059669, #047857); color: white;">
+                <h6 class="mb-1 text-white-50" style="font-size: 12px;">Pendapatan Bulan Ini</h6>
+                <h4 id="dash-inc" class="fw-bold mb-0">Rp 0</h4>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card p-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white;">
+                <h6 class="mb-1 text-white-50" style="font-size: 12px;">Beban Bulan Ini</h6>
+                <h4 id="dash-exp" class="fw-bold mb-0">Rp 0</h4>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card p-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #0891b2, #0e7490); color: white;">
+                <h6 class="mb-1 text-white-50" style="font-size: 12px;">Laba (Rugi) Bersih</h6>
+                <h4 id="dash-net" class="fw-bold mb-0">Rp 0</h4>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grafik dan Aktivitas Terakhir -->
+          <div class="row g-3">
+            <div class="col-md-8">
+              <div class="card border-0 shadow-sm p-3 h-100">
+                <h6 class="fw-bold mb-3">Tren Pendapatan & Beban (Tahun Ini)</h6>
+                <canvas id="dashChart" style="max-height: 300px;"></canvas>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm p-3 h-100">
+                <h6 class="fw-bold mb-3">5 Transaksi Terakhir</h6>
+                <div id="dash-recent">
+                  <!-- Transaksi akan dimuat di sini -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- AKHIR TAB 0 -->
+          <!-- TAB 1: ENTRY -->
+        <div id="t1" class="tab-pane fade">
           <form id="jF">
             <div class="row g-2 mb-3 align-items-end">
               <div class="col-md-2"><label class="small fw-bold">DATE</label><input type="date" id="tgl" class="form-control"></div>
@@ -544,6 +599,73 @@
     }
   }
 
+  let dashChartInst = null;
+
+  function loadDashboard() {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Tampilkan loading di aktivitas terakhir
+    document.getElementById('dash-recent').innerHTML = '<span class="text-muted small">Memuat data...</span>';
+
+    apiCall('getDashboardData', { bulan: currentMonth, tahun: currentYear }).then(res => {
+      // 1. Update Kartu Metrik
+      document.getElementById('dash-cash').innerText = 'Rp ' + res.totalKas.toLocaleString('id-ID');
+      document.getElementById('dash-inc').innerText = 'Rp ' + res.incomeBulanIni.toLocaleString('id-ID');
+      document.getElementById('dash-exp').innerText = 'Rp ' + res.expenseBulanIni.toLocaleString('id-ID');
+      document.getElementById('dash-net').innerText = 'Rp ' + res.labaBulanIni.toLocaleString('id-ID');
+
+      // 2. Update List Transaksi Terakhir
+      let recentHtml = '<ul class="list-group list-group-flush small">';
+      if(res.recent.length === 0) recentHtml += '<li class="list-group-item px-0 text-muted">Belum ada transaksi</li>';
+      res.recent.forEach(r => {
+        recentHtml += `
+          <li class="list-group-item px-0 py-2 border-bottom">
+            <div class="d-flex justify-content-between">
+              <strong class="text-truncate" style="max-width: 150px;">${r.ket}</strong>
+              <span class="text-primary fw-bold">${r.nom.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="text-muted" style="font-size: 10px;">${r.tgl} | Ref: ${r.bukti}</div>
+          </li>`;
+      });
+      recentHtml += '</ul>';
+      document.getElementById('dash-recent').innerHTML = recentHtml;
+
+      // 3. Render Grafik Chart.js
+      if(dashChartInst) dashChartInst.destroy();
+      const ctx = document.getElementById('dashChart').getContext('2d');
+      dashChartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+          datasets: [
+            { label: 'Pendapatan', data: res.chartInc, backgroundColor: '#059669', borderRadius: 4 },
+            { label: 'Beban', data: res.chartExp, backgroundColor: '#dc2626', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+    });
+  }
+
+  // Update fungsi startSystem() agar otomatis memanggil loadDashboard()
+  function startSystem() {
+    vModal = new bootstrap.Modal(document.getElementById('vMod'));
+    apiCall('getCOAList').then(d => { coa = d; resetF(); });
+    
+    const n = new Date().toISOString().split('T')[0];
+    ['dL1','dL2','dR1','dR2'].forEach(i => document.getElementById(i).value = n);
+
+    // Panggil dashboard saat sistem mulai
+    loadDashboard();
+  }
+  
   function initLedger() { 
     document.getElementById('sLed').innerHTML = coa.map(a=>`<option value="${a[0]}">${a[0]} - ${a[1]}</option>`).join('');
     
