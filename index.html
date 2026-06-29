@@ -229,9 +229,31 @@
         <div class="tab-content">
         <!-- TAB 0: DASHBOARD -->
         <div id="t0" class="tab-pane fade show active">
-          <h4 class="fw-bold mb-4" style="color: var(--primary);">Dashboard Overview</h4>
+          <div class="row g-2 mb-4 align-items-center border-bottom pb-3">
+            <div class="col-md-6">
+              <h4 class="fw-bold mb-0" style="color: var(--primary);">Dashboard Overview</h4>
+            </div>
+            <div class="col-md-3 col-6">
+              <select id="dashM" class="form-select form-select-sm" onchange="loadDashboard()">
+                <option value="0">Januari</option>
+                <option value="1">Februari</option>
+                <option value="2">Maret</option>
+                <option value="3">April</option>
+                <option value="4">Mei</option>
+                <option value="5">Juni</option>
+                <option value="6">Juli</option>
+                <option value="7">Agustus</option>
+                <option value="8">September</option>
+                <option value="9">Oktober</option>
+                <option value="10">November</option>
+                <option value="11">Desember</option>
+              </select>
+            </div>
+            <div class="col-md-3 col-6">
+              <input type="number" id="dashY" class="form-control form-select-sm" value="2026" onchange="loadDashboard()">
+            </div>
+          </div>
           
-          <!-- 4 Kartu Metrik Utama -->
           <div class="row g-3 mb-4">
             <div class="col-md-3">
               <div class="card p-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #2563eb, #1e40af); color: white;">
@@ -259,7 +281,6 @@
             </div>
           </div>
 
-          <!-- Grafik dan Aktivitas Terakhir -->
           <div class="row g-3">
             <div class="col-md-8">
               <div class="card border-0 shadow-sm p-3 h-100">
@@ -269,10 +290,9 @@
             </div>
             <div class="col-md-4">
               <div class="card border-0 shadow-sm p-3 h-100">
-                <h6 class="fw-bold mb-3">5 Transaksi Terakhir</h6>
-                <div id="dash-recent">
-                  <!-- Transaksi akan dimuat di sini -->
-                </div>
+                <h6 class="fw-bold mb-3">🔴 Top 5 Beban Terbesar</h6>
+                <div id="dash-top-expenses">
+                  </div>
               </div>
             </div>
           </div>
@@ -602,35 +622,43 @@
   let dashChartInst = null;
 
   function loadDashboard() {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // Membaca input filter yang sedang dipilih oleh user
+    const selectedMonth = document.getElementById('dashM').value;
+    const selectedYear = document.getElementById('dashY').value;
 
-    // Tampilkan loading di aktivitas terakhir
-    document.getElementById('dash-recent').innerHTML = '<span class="text-muted small">Memuat data...</span>';
+    document.getElementById('dash-top-expenses').innerHTML = '<span class="text-muted small">Memuat analisis biaya...</span>';
 
-    apiCall('getDashboardData', { bulan: currentMonth, tahun: currentYear }).then(res => {
+    apiCall('getDashboardData', { bulan: selectedMonth, tahun: selectedYear }).then(res => {
       // 1. Update Kartu Metrik
       document.getElementById('dash-cash').innerText = 'Rp ' + res.totalKas.toLocaleString('id-ID');
       document.getElementById('dash-inc').innerText = 'Rp ' + res.incomeBulanIni.toLocaleString('id-ID');
       document.getElementById('dash-exp').innerText = 'Rp ' + res.expenseBulanIni.toLocaleString('id-ID');
       document.getElementById('dash-net').innerText = 'Rp ' + res.labaBulanIni.toLocaleString('id-ID');
 
-      // 2. Update List Transaksi Terakhir
-      let recentHtml = '<ul class="list-group list-group-flush small">';
-      if(res.recent.length === 0) recentHtml += '<li class="list-group-item px-0 text-muted">Belum ada transaksi</li>';
-      res.recent.forEach(r => {
-        recentHtml += `
-          <li class="list-group-item px-0 py-2 border-bottom">
-            <div class="d-flex justify-content-between">
-              <strong class="text-truncate" style="max-width: 150px;">${r.ket}</strong>
-              <span class="text-primary fw-bold">${r.nom.toLocaleString('id-ID')}</span>
+      // Terapkan warna teks minus jika Laba Bersih di bawah 0 (Rugi)
+      if (res.labaBulanIni < 0) {
+        document.getElementById('dash-net').parentElement.style.background = "linear-gradient(135deg, #7c2d12, #7f1d1d)";
+      } else {
+        document.getElementById('dash-net').parentElement.style.background = "linear-gradient(135deg, #0891b2, #0e7490)";
+      }
+
+      // 2. Update List Top 5 Beban Terbesar
+      let bebanHtml = '<ul class="list-group list-group-flush small">';
+      if(res.topExpenses.length === 0) {
+        bebanHtml += '<li class="list-group-item px-0 text-muted text-center py-4">Tidak ada pencatatan biaya pada periode ini</li>';
+      }
+      res.topExpenses.forEach((e, idx) => {
+        bebanHtml += `
+          <li class="list-group-item px-0 py-2 border-bottom d-flex justify-content-between align-items-center">
+            <div class="text-truncate" style="max-width: 160px;">
+              <span class="badge bg-secondary me-1">${idx + 1}</span>
+              <span class="fw-semibold text-secondary">${e.nama}</span>
             </div>
-            <div class="text-muted" style="font-size: 10px;">${r.tgl} | Ref: ${r.bukti}</div>
+            <span class="text-danger fw-bold">Rp ${e.total.toLocaleString('id-ID')}</span>
           </li>`;
       });
-      recentHtml += '</ul>';
-      document.getElementById('dash-recent').innerHTML = recentHtml;
+      bebanHtml += '</ul>';
+      document.getElementById('dash-top-expenses').innerHTML = bebanHtml;
 
       // 3. Render Grafik Chart.js
       if(dashChartInst) dashChartInst.destroy();
@@ -659,10 +687,13 @@
     vModal = new bootstrap.Modal(document.getElementById('vMod'));
     apiCall('getCOAList').then(d => { coa = d; resetF(); });
     
-    const n = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    document.getElementById('dashM').value = now.getMonth();
+    document.getElementById('dashY').value = now.getFullYear();
+    
+    const n = now.toISOString().split('T')[0];
     ['dL1','dL2','dR1','dR2'].forEach(i => document.getElementById(i).value = n);
 
-    // Panggil dashboard saat sistem mulai
     loadDashboard();
   }
   
